@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>我的个人 RSS 订阅中心</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="description" content="基于 GitHub Actions 的自动化 RSS 订阅中心，打破信息茧房。">
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify-darklight-theme@latest/dist/style.min.css"
+    title="docsify-darklight-theme" type="text/css">
+  <style>
+    :root {
+      --docsifytabs-border-color: #ededed;
+      --docsifytabs-tab-highlight-color: #42b983;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .markdown-section {
+      max-width: 900px;
+    }
+
+    /* 自定义样式使 RSS 列表更美观 */
+    table {
+      display: table !important;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    th {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    td {
+      background: #f9f9f9;
+      border: none !important;
+      padding: 15px !important;
+    }
+
+    tr td:first-child {
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+
+    tr td:last-child {
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    [data-theme='dark'] td {
+      background: #2a2a2a;
+    }
+
+    .rainbow-badge {
+      font-size: 0.8em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">正在加载中...</div>
+  <script>
+    window.$docsify = {
+      name: 'RSS 订阅中心',
+      repo: '',
+      loadNavbar: true,
+      loadSidebar: true,
+      subMaxLevel: 2,
+      homepage: 'README.md',
+      auto2top: true,
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: '搜索报道',
+        noData: '找不到结果',
+        depth: 4
+      },
+      darklightTheme: {
+        siteFont: "PT Sans",
+        defaultTheme: 'dark',
+        codeFontFamily: 'Roboto Mono, Monaco, courier, monospace',
+        bodyFontSize: '17px',
+        dark: {
+          accent: '#42b983',
+          toogleBackground: '#ffffff',
+          background: '#091a28',
+          textColor: '#b4b4b4',
+          codeTextColor: '#ffffff',
+          codeBackgroundColor: '#0e2233',
+          borderColor: '#0d2538',
+          blockQuoteColor: '#858585',
+          highlightColor: '#d22778',
+          prevNextPanelColor: '#283949',
+          searchTextDecoration: 'underline',
+          anchorsColor: '#42b983',
+          tableOddSectionBackgroundColor: '#11283a',
+          tableEvenSectionBackgroundColor: '#091a28'
+        },
+        light: {
+          accent: '#42b983',
+          toogleBackground: '#091a28',
+          background: '#ffffff',
+          textColor: '#34495e',
+          codeTextColor: '#525252',
+          codeBackgroundColor: '#f8f8f8',
+          borderColor: 'rgba(0,0,0,.07)',
+          blockQuoteColor: '#858585',
+          highlightColor: '#d22778',
+          prevNextPanelColor: '#283949',
+          searchTextDecoration: 'underline',
+          anchorsColor: '#42b983',
+          tableOddSectionBackgroundColor: '#f8f8f8',
+          tableEvenSectionBackgroundColor: '#ffffff'
+        }
+      },
+      plugins: [
+        function (hook, vm) {
+          hook.beforeEach(function (html) {
+            // 可以在这里对 HTML 进行一些预处理，比如替换某些占位符
+            return html;
+          });
+          hook.doneEach(function () {
+            // 渲染完成后可以执行一些逻辑
+          });
+        }
+      ]
+    }
+  </script>
+  <!-- Docsify v4 -->
+  <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-darklight-theme@latest/dist/index.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
+</body>
+
+</html>
