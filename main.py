@@ -115,8 +115,8 @@ def replace_readme():
         # 填充统计RSS数量
         new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_num}}", str(len(before_info_list)))
         # 填充统计时间
-        ga_rss_datetime = datetime.fromtimestamp(int(time.time()),pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-        new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{ga_rss_datetime}}", str(ga_rss_datetime))
+        rss_datetime = datetime.fromtimestamp(int(time.time()),pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+        new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_datetime}}", str(rss_datetime))
 
         # 使用进程池进行数据获取，获得rss_info_list
         before_info_list_len = len(before_info_list)
@@ -168,18 +168,18 @@ def replace_readme():
 
                 
             if(len(rss_info) > 0):
-                rss_info[0]["title"] = rss_info[0]["title"].replace("|", "\|")
-                rss_info[0]["title"] = rss_info[0]["title"].replace("[", "\[")
-                rss_info[0]["title"] = rss_info[0]["title"].replace("]", "\]")
+                rss_info[0]["title"] = rss_info[0]["title"].replace("|", "\\|")
+                rss_info[0]["title"] = rss_info[0]["title"].replace("[", "\\[")
+                rss_info[0]["title"] = rss_info[0]["title"].replace("]", "\\]")
 
-                latest_content = "[" + "‣ " + rss_info[0]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " \| " + rss_info[0]["date"] ) +"](" + rss_info[0]["link"] +")"  
+                latest_content = "[" + "‣ " + rss_info[0]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[0]["link"] +")"
 
             if(len(rss_info) > 1):
-                rss_info[1]["title"] = rss_info[1]["title"].replace("|", "\|")
-                rss_info[1]["title"] = rss_info[1]["title"].replace("[", "\[")
-                rss_info[1]["title"] = rss_info[1]["title"].replace("]", "\]")
+                rss_info[1]["title"] = rss_info[1]["title"].replace("|", "\\|")
+                rss_info[1]["title"] = rss_info[1]["title"].replace("[", "\\[")
+                rss_info[1]["title"] = rss_info[1]["title"].replace("]", "\\]")
 
-                latest_content = latest_content + "<br/>[" + "‣ " +  rss_info[1]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " \| " + rss_info[0]["date"] ) +"](" + rss_info[1]["link"] +")"
+                latest_content = latest_content + "<br/>[" + "‣ " +  rss_info[1]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[1]["link"] +")"
 
             # 生成after_info
             after_info = before_info.replace("{{latest_content}}", latest_content)
@@ -191,8 +191,8 @@ def replace_readme():
     new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{news}}", current_date_news_index[0])
     # 替换EditREADME中的新文章数量索引
     new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{new_num}}", str(new_num))
-    # 添加CDN
-    new_edit_readme_md[0] = new_edit_readme_md[0].replace("./_media", "https://cdn.jsdelivr.net/gh/zhaoolee/garss/_media")
+    # 保持本地相对路径，如果需要 CDN 建议使用自己的仓库地址
+    # new_edit_readme_md[0] = new_edit_readme_md[0].replace("./_media", "...")
         
     # 将新内容
     with open(os.path.join(os.getcwd(),"README.md"),'w') as load_f:
@@ -240,30 +240,21 @@ def create_opml():
         opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
 
         for opml_info_text in opml_info_text_list:
-
-
-            # print('==', opml_info_text)
-
-            opml_info_text_format_data = re.match(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|',opml_info_text)
-
-            # print("data==>>", opml_info_text_format_data)
-
-            # print("总信息", opml_info_text_format_data[0].strip())
-            # print("编号==>>", opml_info_text_format_data[1].strip())
-            # print("text==>>", opml_info_text_format_data[2].strip())
-            # print("description==>>", opml_info_text_format_data[3].strip())
-            # print("data004==>>", opml_info_text_format_data[4].strip())
-            print('##',opml_info_text_format_data[2].strip())
-            print(opml_info_text_format_data[3].strip())
-            print(opml_info_text_format_data[5].strip())
+            opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
             
+            if not opml_info_text_format_data:
+                continue
 
+            print('##', opml_info_text_format_data.group(2).strip())
+            print(opml_info_text_format_data.group(3).strip())
+            print(opml_info_text_format_data.group(5).strip())
+            
             opml_info = {}
-            opml_info["text"] = opml_info_text_format_data[2].strip()
-            opml_info["description"] = opml_info_text_format_data[3].strip()
-            opml_info["htmlUrl"] = opml_info_text_format_data[5].strip()
-            opml_info["title"] = opml_info_text_format_data[2].strip()
-            opml_info["xmlUrl"] = opml_info_text_format_data[5].strip()
+            opml_info["text"] = opml_info_text_format_data.group(2).strip()
+            opml_info["description"] = opml_info_text_format_data.group(3).strip()
+            opml_info["htmlUrl"] = opml_info_text_format_data.group(5).strip()
+            opml_info["title"] = opml_info_text_format_data.group(2).strip()
+            opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
 
             # print('opml_info==>>', opml_info);
             
@@ -291,28 +282,28 @@ def create_opml():
 
             result_v1 = result_v1 + opml_info_text_v1 + "\n"
     
-    zhaoolee_github_garss_subscription_list = "";
+    rss_subscription_list = "";
     with open(os.path.join(os.getcwd(),"rss-template-v2.txt"),'r') as load_f:
-        zhaoolee_github_garss_subscription_list_template = load_f.read();
+        rss_subscription_list_template = load_f.read();
         GMT_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
         date_created = datetime.utcnow().strftime(GMT_FORMAT);
         date_modified = datetime.utcnow().strftime(GMT_FORMAT);
-        zhaoolee_github_garss_subscription_list = zhaoolee_github_garss_subscription_list_template.format(result=result, date_created=date_created, date_modified=date_modified);
-        # print(zhaoolee_github_garss_subscription_list);
+        rss_subscription_list = rss_subscription_list_template.format(result=result, date_created=date_created, date_modified=date_modified);
+        # print(rss_subscription_list);
 
     # 将内容写入
-    with open(os.path.join(os.getcwd(),"zhaoolee_github_garss_subscription_list_v2.opml"),'w') as load_f:
-        load_f.write(zhaoolee_github_garss_subscription_list)
+    with open(os.path.join(os.getcwd(),"subscription_list_v2.opml"),'w') as load_f:
+        load_f.write(rss_subscription_list)
 
-    zhaoolee_github_garss_subscription_list_v1 = ""
+    rss_subscription_list_v1 = ""
     with open(os.path.join(os.getcwd(),"rss-template-v1.txt"),'r') as load_f:
-        zhaoolee_github_garss_subscription_list_template = load_f.read();
-        zhaoolee_github_garss_subscription_list_v1 = zhaoolee_github_garss_subscription_list_template.format(result=result_v1);
-        # print(zhaoolee_github_garss_subscription_list_v1);
+        rss_subscription_list_template = load_f.read();
+        rss_subscription_list_v1 = rss_subscription_list_template.format(result=result_v1);
+        # print(rss_subscription_list_v1);
 
     # 将内容写入
-    with open(os.path.join(os.getcwd(),"zhaoolee_github_garss_subscription_list_v1.opml"),'w') as load_f:
-        load_f.write(zhaoolee_github_garss_subscription_list_v1)
+    with open(os.path.join(os.getcwd(),"subscription_list_v1.opml"),'w') as load_f:
+        load_f.write(rss_subscription_list_v1)
 
 
 
@@ -321,19 +312,20 @@ def create_opml():
     # print(result)
 
 def create_json():
-    result = {"garssInfo": []}
+    result = {"rss_info": []}
     with open(os.path.join(os.getcwd(),"EditREADME.md"),'r') as load_f:
         edit_readme_md = load_f.read();
         ## 将信息填充到opml_info_list
         opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
         for opml_info_text in opml_info_text_list:
-            opml_info_text_format_data = re.match(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|',opml_info_text)
-            opml_info = {}
-            opml_info["description"] = opml_info_text_format_data[3].strip()
-            opml_info["title"] = opml_info_text_format_data[2].strip()
-            opml_info["xmlUrl"] = opml_info_text_format_data[5].strip()
-            result["garssInfo"].append(opml_info)
-    with open("./garssInfo.json","w", encoding="utf-8") as f:
+            opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
+            if opml_info_text_format_data:
+                opml_info = {}
+                opml_info["description"] = opml_info_text_format_data.group(3).strip()
+                opml_info["title"] = opml_info_text_format_data.group(2).strip()
+                opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
+                result["rss_info"].append(opml_info)
+    with open("./rss_info.json","w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
 
 def main():
@@ -349,7 +341,7 @@ def main():
     reResult = re.findall(mail_re, readme_md[0])
 
     try:
-        send_mail(email_list, "嘎!RSS订阅", reResult)
+        send_mail(email_list, "我的个人 RSS 订阅更新", reResult)
     except Exception as e:
         print("==邮件设信息置错误===》》", e)
 

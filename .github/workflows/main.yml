@@ -12,7 +12,10 @@ jobs:
         matrix:
           # in this example, there is a newer version already installed, 3.7.7, so the older version will be downloaded
           operating-system: ['ubuntu-22.04']
-      steps:
+    permissions:
+      contents: write  # 必须开启写权限，才能推送分支
+    
+    steps:
       - uses: actions/checkout@v3 # Checking out the repo
       - name: Run with setup-python 3.9
         uses: actions/setup-python@v4
@@ -30,12 +33,21 @@ jobs:
             PASSWORD: ${{ secrets.PASSWORD }}
             HOST: ${{ secrets.HOST }}
         run: pipenv run build
-      - name: Commit and push if changed   # 更新README.md
+      - name: Deploy to gh-pages  # 更加标准和干净的部署方式
         run: |
-          git diff
-          git config --global user.email "zhaoolee@gmail.com"
-          git config --global user.name "zhaoolee"
-          git add README.md
-          git add docs
-          git commit -m "Github Action auto Updated"
-          git push
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          # 创建一个临时的发布目录，只放需要部署的文件
+          mkdir deploy_out
+          cp -r docs/* deploy_out/
+          cp README.md deploy_out/
+          cp subscription_list_v1.opml subscription_list_v2.opml rss_info.json deploy_out/ 2>/dev/null || true
+          
+          cd deploy_out
+          git init
+          git add .
+          git commit -m "Auto updated at $(date)"
+          
+          # 强制推送到仓库的 gh-pages 分支
+          git push -f "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages

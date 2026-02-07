@@ -1,1 +1,2 @@
-* [《嘎!RSS》Github](https://github.com/zhaoolee/garss)
+* [首页](README.md)
+* [关于本站](https://github.com/cold-rivers-snow/hjxrss)
