@@ -1,53 +1,60 @@
 name: rss
+
 on:
   schedule:
-    - cron:  '0 22 * * *'    # 国际标准时间22点（北京时间早上6点发） 
+    - cron: '0 22 * * *'    # 国际标准时间22点（北京时间早上6点发） 
   push:
     branches:    
       - main
+  workflow_dispatch:        # 允许在 GitHub Actions 页面点击按钮手动测试
+
 jobs:
   push:
-      runs-on: ${{ matrix.operating-system }}
-      strategy:
-        matrix:
-          # in this example, there is a newer version already installed, 3.7.7, so the older version will be downloaded
-          operating-system: ['ubuntu-22.04']
-      permissions:
-        contents: write  # 必须开启写权限，才能推送分支
-      
-      steps:
-        - uses: actions/checkout@v3 # Checking out the repo
-        - name: Run with setup-python 3.9
-          uses: actions/setup-python@v4
-          with:
-            python-version: '3.9'
-            update-environment: false
-            cache: 'pipenv'
-        - name: Install pipenv
-          run: pip3 install --user pipenv
-        - name: Install dependecies
-          run:  pipenv --python python3 && pipenv install
-        - name: Build
-          env:
-              USER: ${{ secrets.USER }}
-              PASSWORD: ${{ secrets.PASSWORD }}
-              HOST: ${{ secrets.HOST }}
-          run: pipenv run build
-        - name: Deploy to gh-pages  # 更加标准和干净的部署方式
-          run: |
-            git config --global user.email "actions@github.com"
-            git config --global user.name "GitHub Actions"
-            
-            # 创建一个临时的发布目录，只放需要部署的文件
-            mkdir deploy_out
-            cp -r docs/* deploy_out/
-            cp README.md deploy_out/
-            cp subscription_list_v1.opml subscription_list_v2.opml rss_info.json deploy_out/ 2>/dev/null || true
-            
-            cd deploy_out
-            git init
-            git add .
-            git commit -m "Auto updated at $(date)"
-            
-            # 强制推送到仓库的 gh-pages 分支
-            git push -f "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+    runs-on: ubuntu-22.04
+    # 必须配置权限，Actions 才能直接操作 Pages 服务
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pipenv'
+
+      - name: Install pipenv
+        run: pip3 install --user pipenv
+
+      - name: Install dependencies
+        run: pipenv --python python3 && pipenv install
+
+      - name: Build
+        env:
+          USER: ${{ secrets.USER }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          HOST: ${{ secrets.HOST }}
+        run: pipenv run build
+
+      - name: Prepare Files
+        run: |
+          mkdir -p deploy_out
+          # 拷贝生成的静态文件、README和必要的OPML
+          cp -r docs/* deploy_out/ 2>/dev/null || true
+          cp README.md deploy_out/ 2>/dev/null || true
+          cp subscription_list_v1.opml subscription_list_v2.opml rss_info.json deploy_out/ 2>/dev/null || true
+
+      - name: Upload artifact
+        # 升级至 v3，解决 deprecated 问题
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./deploy_out/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        # 升级至 v4，这是最新的部署组件
+        uses: actions/deploy-pages@v4
