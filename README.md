@@ -283,6 +283,9 @@
 
 > 提示：在 GitHub Pages 上可以直接右键另存为下载。
 
+## 查找网站的RSS订阅
+
+- [Feed Finder](https://lighthouseapp.io/tools/feed-finder)
 
 ## 🛠️ 配置说明
 1. **添加/修改 RSS 源**：
