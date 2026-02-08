@@ -123,6 +123,7 @@
 | <div id="B127" style="text-align: center;"><span>B127</span></div>                                                                                         | 千古壹号的博客                           | 一个京东前端工程师                                                                                                        | {{latest_content}} | [订阅地址](https://qianguyihao.com/atom.xml)                                                |
 | <div id="B128" style="text-align: center;"><span>B128</span></div>                                                                                         | 涛叔                                     | 互联网从业者，专注效率工具和思维方法                                                                                      | {{latest_content}} | [订阅地址](https://taoshu.in/feed.xml)                                                      |
 | <div id="B129" style="text-align: center;"><span>B129</span></div>                                                                                         | 可能吧                                   | 有趣有用的互联网趋势                                                                                                      | {{latest_content}} | [订阅地址](https://feeds.feedburner.com/kenengbarss)                                        |
+| <div id="B130" style="text-align: center;"><span>B130</span></div>                                                                                         | GitHub Blog                              | GitHub Blog                                                                                                               | {{latest_content}} | [订阅地址](https://github.blog/feed/)                                                        |
 | <h2 id="数码">数码</h2>                                                                                                                                    |                                          |                                                                                                                           |                    |
 | D001                                                                                                                                                       | 少数派                                   | 少数派致力于更好地运用数字产品或科学方法，帮助用户提升工作效率和生活品质                                                  | {{latest_content}} | [订阅地址](https://sspai.com/feed)                                                          |
 | D002                                                                                                                                                       | 数字尾巴                                 | 分享美好数字生活                                                                                                          | {{latest_content}} | [订阅地址](https://www.dgtle.com/rss/dgtle.xml)                                             |
@@ -208,6 +209,10 @@
 - [OPML V1.0 订阅列表 (兼容性更好)](./subscription_list_v1.opml)
 
 > 提示：在 GitHub Pages 上可以直接右键另存为下载。
+
+## 查找网站的RSS订阅
+
+- [Feed Finder](https://lighthouseapp.io/tools/feed-finder)
 
 
 ## 🛠️ 配置说明
