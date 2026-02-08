@@ -293,7 +293,8 @@
    `| 编号 | 名称 | 描述 | {{latest_content}} | [订阅地址](URL) |`
 
 2. **GitHub Pages 部署**：
-   前往仓库设置 (Settings) -> Pages，在 **Build and deployment** -> **Branch** 中选择 `gh-pages` 分支，目录选择 `/(root)`。
+   旧方法前往仓库设置 (Settings) -> Pages，在 **Build and deployment** -> **Branch** 中选择 `gh-pages` 分支，目录选择 `/(root)`。
+   新方法前往仓库设置 (Settings) -> Pages，在 **Build and deployment** -> **github actions** 中打开 GitHub Actions。
 
 3. **自动化更新**：
    项目利用 GitHub Actions 每天自动更新。你也可以手动触发推送来更新内容。
