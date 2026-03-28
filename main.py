@@ -32,7 +32,7 @@ def get_rss_info(feed_url, index, rss_info_list):
                 feed_entries = feed["entries"]
                 feed_entries_length = len(feed_entries)
                 print("==feed_url=>>", feed_url, "==len=>>", feed_entries_length)
-                for entrie in feed_entries[0: feed_entries_length-1]:
+                for entrie in feed_entries[:]:
                     title = entrie["title"]
                     link = entrie["link"]
                     date = time.strftime("%Y-%m-%d", entrie["published_parsed"])
@@ -91,7 +91,6 @@ def send_mail(email, title, contents):
             print("无法获取发件人信息")
     
     # 连接邮箱服务器
-    # yag = yagmail.SMTP(user=user, password=password, host=host)
     yag = yagmail.SMTP(user = user, password = password, host=host)
     # 发送邮件
     yag.send(email, title, contents)
