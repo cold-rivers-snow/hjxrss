@@ -9,6 +9,7 @@ import requests
 import markdown
 import json
 import shutil
+import hashlib
 from urllib.parse import urlparse
 from multiprocessing import Pool,  Manager
 
@@ -95,97 +96,91 @@ def send_mail(email, title, contents):
     # 发送邮件
     yag.send(email, title, contents)
 
-def replace_readme():
+def replace_readme(edit_readme_md):
     new_edit_readme_md = ["", ""]
     current_date_news_index = [""]
 
 
     
-    # 读取EditREADME.md
+    # 使用传入的 edit_readme_md
     print("replace_readme")
     new_num = 0
-    with open(os.path.join(os.getcwd(),"EditREADME.md"),'r') as load_f:
-        edit_readme_md = load_f.read();
+    new_edit_readme_md[0] = edit_readme_md
+    before_info_list =  re.findall(r'\{\{latest_content\}\}.*\[订阅地址\]\(.*\)' ,edit_readme_md);
+    # 填充统计RSS数量
+    new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_num}}", str(len(before_info_list)))
+    # 填充统计时间
+    rss_datetime = datetime.fromtimestamp(int(time.time()),pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+    new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_datetime}}", str(rss_datetime))
+
+    # 使用进程池进行数据获取，获得rss_info_list
+    before_info_list_len = len(before_info_list)
+    rss_info_list = Manager().list(range(before_info_list_len))
+    print('初始化完毕==》', rss_info_list)
+
+    
+
+    # 创建一个最多开启8进程的进程池
+    po = Pool(8)
+
+    for index, before_info in enumerate(before_info_list):
+        # 获取link
+        link = re.findall(r'\[订阅地址\]\((.*)\)', before_info)[0]
+        po.apply_async(get_rss_info,(link, index, rss_info_list))
 
 
+    # 关闭进程池,不再接收新的任务,开始执行任务
+    po.close()
 
-        new_edit_readme_md[0] = edit_readme_md
-        before_info_list =  re.findall(r'\{\{latest_content\}\}.*\[订阅地址\]\(.*\)' ,edit_readme_md);
-        # 填充统计RSS数量
-        new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_num}}", str(len(before_info_list)))
-        # 填充统计时间
-        rss_datetime = datetime.fromtimestamp(int(time.time()),pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-        new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{rss_datetime}}", str(rss_datetime))
+    # 主进程等待所有子进程结束
+    po.join()
+    print("----结束----", rss_info_list)
 
-        # 使用进程池进行数据获取，获得rss_info_list
-        before_info_list_len = len(before_info_list)
-        rss_info_list = Manager().list(range(before_info_list_len))
-        print('初始化完毕==》', rss_info_list)
 
+    for index, before_info in enumerate(before_info_list):
+        # 获取link
+        link = re.findall(r'\[订阅地址\]\((.*)\)', before_info)[0]
+        # 生成超链接
+        rss_info = rss_info_list[index]
+        latest_content = ""
+        parse_result = urlparse(link)
+        scheme_netloc_url = str(parse_result.scheme)+"://"+str(parse_result.netloc)
+        latest_content = "[暂无法通过爬虫获取信息, 点击进入源网站主页]("+ scheme_netloc_url +")"
+
+        # 加入到索引
+        try:
+            for rss_info_atom in rss_info:
+                if (rss_info_atom["date"] == datetime.today().strftime("%Y-%m-%d")):
+                    new_num = new_num + 1
+                    if (new_num % 2) == 0:
+                        current_date_news_index[0] = current_date_news_index[0] + "<div style='line-height:3;' ><a href='" + rss_info_atom["link"] + "' " + 'style="line-height:2;text-decoration:none;display:block;color:#584D49;">' + "🌈 ‣ " + rss_info_atom["title"] + " | 第" + str(new_num) +"篇" + "</a></div>"
+                    else:
+                        current_date_news_index[0] = current_date_news_index[0] + "<div style='line-height:3;background-color:#FAF6EA;' ><a href='" + rss_info_atom["link"] + "' " + 'style="line-height:2;text-decoration:none;display:block;color:#584D49;">' + "🌈 ‣ " + rss_info_atom["title"] + " | 第" + str(new_num) +"篇" + "</a></div>"
+
+        except:
+            print("An exception occurred")
         
 
-        # 创建一个最多开启8进程的进程池
-        po = Pool(8)
-
-        for index, before_info in enumerate(before_info_list):
-            # 获取link
-            link = re.findall(r'\[订阅地址\]\((.*)\)', before_info)[0]
-            po.apply_async(get_rss_info,(link, index, rss_info_list))
-
-
-        # 关闭进程池,不再接收新的任务,开始执行任务
-        po.close()
-
-        # 主进程等待所有子进程结束
-        po.join()
-        print("----结束----", rss_info_list)
-
-
-        for index, before_info in enumerate(before_info_list):
-            # 获取link
-            link = re.findall(r'\[订阅地址\]\((.*)\)', before_info)[0]
-            # 生成超链接
-            rss_info = rss_info_list[index]
-            latest_content = ""
-            parse_result = urlparse(link)
-            scheme_netloc_url = str(parse_result.scheme)+"://"+str(parse_result.netloc)
-            latest_content = "[暂无法通过爬虫获取信息, 点击进入源网站主页]("+ scheme_netloc_url +")"
-
-            # 加入到索引
-            try:
-                for rss_info_atom in rss_info:
-                    if (rss_info_atom["date"] == datetime.today().strftime("%Y-%m-%d")):
-                        new_num = new_num + 1
-                        if (new_num % 2) == 0:
-                            current_date_news_index[0] = current_date_news_index[0] + "<div style='line-height:3;' ><a href='" + rss_info_atom["link"] + "' " + 'style="line-height:2;text-decoration:none;display:block;color:#584D49;">' + "🌈 ‣ " + rss_info_atom["title"] + " | 第" + str(new_num) +"篇" + "</a></div>"
-                        else:
-                            current_date_news_index[0] = current_date_news_index[0] + "<div style='line-height:3;background-color:#FAF6EA;' ><a href='" + rss_info_atom["link"] + "' " + 'style="line-height:2;text-decoration:none;display:block;color:#584D49;">' + "🌈 ‣ " + rss_info_atom["title"] + " | 第" + str(new_num) +"篇" + "</a></div>"
-
-            except:
-                print("An exception occurred")
             
+        if(len(rss_info) > 0):
+            rss_info[0]["title"] = rss_info[0]["title"].replace("|", "\\|")
+            rss_info[0]["title"] = rss_info[0]["title"].replace("[", "\\[")
+            rss_info[0]["title"] = rss_info[0]["title"].replace("]", "\\]")
 
-                
-            if(len(rss_info) > 0):
-                rss_info[0]["title"] = rss_info[0]["title"].replace("|", "\\|")
-                rss_info[0]["title"] = rss_info[0]["title"].replace("[", "\\[")
-                rss_info[0]["title"] = rss_info[0]["title"].replace("]", "\\]")
+            latest_content = "[" + "‣ " + rss_info[0]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[0]["link"] +")"
 
-                latest_content = "[" + "‣ " + rss_info[0]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[0]["link"] +")"
+        if(len(rss_info) > 1):
+            rss_info[1]["title"] = rss_info[1]["title"].replace("|", "\\|")
+            rss_info[1]["title"] = rss_info[1]["title"].replace("[", "\\[")
+            rss_info[1]["title"] = rss_info[1]["title"].replace("]", "\\]")
 
-            if(len(rss_info) > 1):
-                rss_info[1]["title"] = rss_info[1]["title"].replace("|", "\\|")
-                rss_info[1]["title"] = rss_info[1]["title"].replace("[", "\\[")
-                rss_info[1]["title"] = rss_info[1]["title"].replace("]", "\\]")
+            latest_content = latest_content + "<br/>[" + "‣ " +  rss_info[1]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[1]["link"] +")"
 
-                latest_content = latest_content + "<br/>[" + "‣ " +  rss_info[1]["title"] + ( " 🌈 " + rss_info[0]["date"] if (rss_info[0]["date"] == datetime.today().strftime("%Y-%m-%d")) else " | " + rss_info[0]["date"] ) +"](" + rss_info[1]["link"] +")"
-
-            # 生成after_info
-            after_info = before_info.replace("{{latest_content}}", latest_content)
-            print("====latest_content==>", latest_content)
-            # 替换edit_readme_md中的内容
-            new_edit_readme_md[0] = new_edit_readme_md[0].replace(before_info, after_info)
-    
+        # 生成after_info
+        after_info = before_info.replace("{{latest_content}}", latest_content)
+        print("====latest_content==>", latest_content)
+        # 替换edit_readme_md中的内容
+        new_edit_readme_md[0] = new_edit_readme_md[0].replace(before_info, after_info)
     # 替换EditREADME中的索引
     new_edit_readme_md[0] = new_edit_readme_md[0].replace("{{news}}", current_date_news_index[0])
     # 替换EditREADME中的新文章数量索引
@@ -225,62 +220,58 @@ def get_email_list():
 
 # 创建opml订阅文件
 
-def create_opml():
+def create_opml(edit_readme_md):
 
     result = "";
     result_v1 = "";
 
     # <outline text="CNET News.com" description="Tech news and business reports by CNET News.com. Focused on information technology, core topics include computers, hardware, software, networking, and Internet media." htmlUrl="http://news.com.com/" language="unknown" title="CNET News.com" type="rss" version="RSS2" xmlUrl="http://news.com.com/2547-1_3-0-5.xml"/>
 
-    with open(os.path.join(os.getcwd(),"EditREADME.md"),'r') as load_f:
-        edit_readme_md = load_f.read();
+    ## 将信息填充到opml_info_list
+    opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
 
-        ## 将信息填充到opml_info_list
-        opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
+    for opml_info_text in opml_info_text_list:
+        opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
+        
+        if not opml_info_text_format_data:
+            continue
 
-        for opml_info_text in opml_info_text_list:
-            opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
-            
-            if not opml_info_text_format_data:
-                continue
+        print('##', opml_info_text_format_data.group(2).strip())
+        print(opml_info_text_format_data.group(3).strip())
+        print(opml_info_text_format_data.group(5).strip())
+        
+        opml_info = {}
+        opml_info["text"] = opml_info_text_format_data.group(2).strip()
+        opml_info["description"] = opml_info_text_format_data.group(3).strip()
+        opml_info["htmlUrl"] = opml_info_text_format_data.group(5).strip()
+        opml_info["title"] = opml_info_text_format_data.group(2).strip()
+        opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
 
-            print('##', opml_info_text_format_data.group(2).strip())
-            print(opml_info_text_format_data.group(3).strip())
-            print(opml_info_text_format_data.group(5).strip())
-            
-            opml_info = {}
-            opml_info["text"] = opml_info_text_format_data.group(2).strip()
-            opml_info["description"] = opml_info_text_format_data.group(3).strip()
-            opml_info["htmlUrl"] = opml_info_text_format_data.group(5).strip()
-            opml_info["title"] = opml_info_text_format_data.group(2).strip()
-            opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
-
-            # print('opml_info==>>', opml_info);
-            
+        # print('opml_info==>>', opml_info);
+        
 
 
-            opml_info_text = '<outline  text="{text}" description="{description}" htmlUrl="{htmlUrl}" language="unknown" title="{title}" type="rss" version="RSS2" xmlUrl="{xmlUrl}"/>'
+        opml_info_text = '<outline  text="{text}" description="{description}" htmlUrl="{htmlUrl}" language="unknown" title="{title}" type="rss" version="RSS2" xmlUrl="{xmlUrl}"/>'
 
-            opml_info_text_v1 = '      <outline text="{title}" title="{title}" type="rss"  \n            xmlUrl="{xmlUrl}" htmlUrl="{htmlUrl}"/>'
+        opml_info_text_v1 = '      <outline text="{title}" title="{title}" type="rss"  \n            xmlUrl="{xmlUrl}" htmlUrl="{htmlUrl}"/>'
 
-            opml_info_text =  opml_info_text.format(
-                text=opml_info["text"], 
-                description=opml_info["description"], 
-                htmlUrl = opml_info["htmlUrl"],
-                title=opml_info["title"],
-                xmlUrl=opml_info["xmlUrl"]
-            )
+        opml_info_text =  opml_info_text.format(
+            text=opml_info["text"], 
+            description=opml_info["description"], 
+            htmlUrl = opml_info["htmlUrl"],
+            title=opml_info["title"],
+            xmlUrl=opml_info["xmlUrl"]
+        )
 
-            opml_info_text_v1 =  opml_info_text_v1.format(
-                htmlUrl = opml_info["htmlUrl"],
-                title=opml_info["title"],
-                xmlUrl=opml_info["xmlUrl"]
-            )
+        opml_info_text_v1 =  opml_info_text_v1.format(
+            htmlUrl = opml_info["htmlUrl"],
+            title=opml_info["title"],
+            xmlUrl=opml_info["xmlUrl"]
+        )
 
-            result = result + opml_info_text + "\n"
+        result = result + opml_info_text + "\n"
 
-            result_v1 = result_v1 + opml_info_text_v1 + "\n"
-    
+        result_v1 = result_v1 + opml_info_text_v1 + "\n"
     rss_subscription_list = "";
     with open(os.path.join(os.getcwd(),"rss-template-v2.txt"),'r') as load_f:
         rss_subscription_list_template = load_f.read();
@@ -310,27 +301,45 @@ def create_opml():
         
     # print(result)
 
-def create_json():
+def create_json(edit_readme_md):
     result = {"rss_info": []}
-    with open(os.path.join(os.getcwd(),"EditREADME.md"),'r') as load_f:
-        edit_readme_md = load_f.read();
-        ## 将信息填充到opml_info_list
-        opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
-        for opml_info_text in opml_info_text_list:
-            opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
-            if opml_info_text_format_data:
-                opml_info = {}
-                opml_info["description"] = opml_info_text_format_data.group(3).strip()
-                opml_info["title"] = opml_info_text_format_data.group(2).strip()
-                opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
-                result["rss_info"].append(opml_info)
+    ## 将信息填充到opml_info_list
+    opml_info_text_list =  re.findall(r'.*\{\{latest_content\}\}.*\[订阅地址\]\(.*\).*' ,edit_readme_md);
+    for opml_info_text in opml_info_text_list:
+        opml_info_text_format_data = re.search(r'\|(.*)\|(.*)\|(.*)\|(.*)\|.*\[订阅地址\]\((.*)\).*\|', opml_info_text)
+        if opml_info_text_format_data:
+            opml_info = {}
+            opml_info["description"] = opml_info_text_format_data.group(3).strip()
+            opml_info["title"] = opml_info_text_format_data.group(2).strip()
+            opml_info["xmlUrl"] = opml_info_text_format_data.group(5).strip()
+            result["rss_info"].append(opml_info)
     with open("./rss_info.json","w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
 
 def main():
-    create_json()
-    create_opml()
-    readme_md = replace_readme()
+    edit_readme_path = os.path.join(os.getcwd(), "EditREADME.md")
+    md5_path = os.path.join(os.getcwd(), "EditREADME.md.md5")
+    
+    with open(edit_readme_path, 'r', encoding='utf-8') as f:
+        edit_readme_md = f.read()
+    
+    curr_md5 = hashlib.md5(edit_readme_md.encode('utf-8')).hexdigest()
+    
+    old_md5 = ""
+    if os.path.exists(md5_path):
+        with open(md5_path, 'r') as f:
+            old_md5 = f.read().strip()
+            
+    if curr_md5 != old_md5:
+        print("EditREADME.md 已更改，重新生成 json 和 opml 文件")
+        create_json(edit_readme_md)
+        create_opml(edit_readme_md)
+        with open(md5_path, 'w') as f:
+            f.write(curr_md5)
+    else:
+        print("EditREADME.md 未更改，跳过生成 json 和 opml 文件")
+
+    readme_md = replace_readme(edit_readme_md)
     content = markdown.markdown(readme_md[0], extensions=['tables', 'fenced_code'])
     cp_readme_md_to_docs()
     cp_media_to_docs()
