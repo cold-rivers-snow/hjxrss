@@ -278,6 +278,20 @@ def cp_media_to_docs():
         shutil.rmtree(os.path.join(os.getcwd(), "docs","_media"))	
     shutil.copytree(os.path.join(os.getcwd(),"_media"), os.path.join(os.getcwd(), "docs","_media"))
 
+def save_email_result(reResult):
+    if reResult:
+        content = "\n".join(reResult)
+        # 写入 docs/email_result.md
+        file_path = os.path.join(os.getcwd(), "docs", "email_result.md")
+        # 确保目录存在
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            # 可以根据需要添加一些页头信息
+            f.write("# 📧 邮件内容备份\n\n")
+            f.write(f"> 生成时间: {datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            f.write(content)
+        print(f"邮件结果已写入 {file_path}")
+
 def get_email_list():
     email_list = []
     with open(os.path.join(os.getcwd(),"tasks.json"),'r') as load_f:
@@ -452,6 +466,9 @@ def main():
 
     mail_re = r'邮件内容区开始>([.\S\s]*)<邮件内容区结束'
     reResult = re.findall(mail_re, readme_md[0])
+
+    # 将邮件内容写入 docs/email_result.md
+    save_email_result(reResult)
 
     try:
         send_mail(email_list, "我的个人 RSS 订阅更新", reResult)
