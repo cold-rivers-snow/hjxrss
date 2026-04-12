@@ -223,7 +223,7 @@ def replace_readme(edit_readme_md):
 
         # 使用 join() 优化字符串拼接
         if news_items:
-            current_date_news_index[0] += "\n".join(news_items)
+            current_date_news_index[0] += "\n".join(news_items) + "\n"
 
         # 生成最新内容
         if len(rss_info) > 0:
@@ -281,12 +281,26 @@ def cp_media_to_docs():
 def save_email_result(reResult):
     if reResult:
         content = "\n".join(reResult)
+        
+        # 将 HTML 格式转换为 Markdown 格式
+        # 1. 转换链接: 从 div 结构转换为 Markdown 列表项
+        # 增加 \n 确保每个项目占一行
+        content = re.sub(r"<div[^>]*>\s*<a href='([^']*)'[^>]*>(.*?)</a>\s*</div>", r"\n- [\2](\1)", content)
+        
+        # 2. 转换标题: <h2>TEXT</h2> -> ## TEXT
+        content = re.sub(r"<h2[^>]*>(.*?)</h2>", r"\n## \1\n", content)
+        
+        # 3. 清理多余的 HTML 标签
+        content = re.sub(r"<br\s*/?>", r"\n", content)
+        
+        # 4. 移除多余的空行，保持整洁
+        content = re.sub(r"\n{3,}", r"\n\n", content)
+        
         # 写入 docs/email_result.md
         file_path = os.path.join(os.getcwd(), "docs", "email_result.md")
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
-            # 可以根据需要添加一些页头信息
             f.write("# 📧 邮件内容备份\n\n")
             f.write(f"> 生成时间: {datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             f.write(content)
