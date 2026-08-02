@@ -3,9 +3,10 @@ import time
 import os
 import re
 import pytz
+import calendar
 import traceback
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from multiprocessing.managers import ListProxy
 import yagmail
@@ -28,6 +29,26 @@ logger = logging.getLogger(__name__)
 # 配置常量
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", 8))  # 从环境变量读取，默认 8 个进程
 RETRY_TIMES = int(os.getenv("RETRY_TIMES", 3))  # 请求重试次数，默认 3 次
+
+
+def _parse_max_age_hours() -> float:
+    """
+    解析文章时效窗口（小时），默认 48 小时。
+    支持环境变量 MAX_AGE_HOURS 配置，非法或空值回退到默认值。
+    配置为 0 或 -1 时不校验时间差，显示所有文章。
+    """
+    raw = os.getenv("MAX_AGE_HOURS", "48")
+    try:
+        hours = float(raw)
+        if hours <= 0:
+            return -1  # 0 或负数（含 -1）表示不校验时间差
+        return hours
+    except (TypeError, ValueError):
+        logger.warning(f"MAX_AGE_HOURS 配置无效: {raw!r}, 使用默认值 48")
+        return 48
+
+
+MAX_AGE_HOURS = _parse_max_age_hours()  # 文章时效窗口（小时），默认 48 小时，超过时效的文章不显示；配置 0 或 -1 时不校验时间差
 
 
 def escape_markdown(text):
@@ -79,6 +100,11 @@ def get_rss_info(
                 feed_entries_length = len(feed_entries)
                 logger.info(f"Fetched {feed_url}: {feed_entries_length} entries")
 
+                # 计算时效窗口：只保留距离抓取时间不超过 MAX_AGE_HOURS 小时的文章
+                # 配置 0 或 -1 时 MAX_AGE_HOURS <= 0，不校验时间差
+                fetch_time = datetime.now()
+                age_cutoff = fetch_time - timedelta(hours=MAX_AGE_HOURS) if MAX_AGE_HOURS > 0 else None
+
                 # 直接遍历，避免完整拷贝
                 for entrie in feed_entries:
                     title = entrie["title"]
@@ -86,10 +112,19 @@ def get_rss_info(
 
                     # 日期异常处理
                     try:
-                        date = time.strftime("%Y-%m-%d", entrie["published_parsed"])
+                        published_parsed = entrie["published_parsed"]
+                        published_dt = datetime.fromtimestamp(calendar.timegm(published_parsed))
+                        date = time.strftime("%Y-%m-%d", published_parsed)
                     except (KeyError, TypeError):
-                        date = datetime.now().strftime("%Y-%m-%d")  # 降级方案
+                        published_dt = datetime.now()  # 降级方案
+                        date = datetime.now().strftime("%Y-%m-%d")
                         logger.warning(f"Published date not found for {feed_url}, using current date")
+
+                    # 时效过滤：超过 MAX_AGE_HOURS 小时（默认48小时）的文章不加入结果
+                    # 配置 0 或 -1（MAX_AGE_HOURS <= 0）时不校验时间差，保留所有文章
+                    if age_cutoff is not None and published_dt < age_cutoff:
+                        logger.info(f"跳过过期文章 [{feed_url}]: {title} ({date})")
+                        continue
 
                     # 清理标题中的换行符
                     title = title.replace("\n", "").replace("\r", "")
